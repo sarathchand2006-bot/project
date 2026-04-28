@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SocketVerse — Learn WLAN Socket Programming</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --c1: #FF6B6B;
+  --c2: #FFD93D;
+  --c3: #6BCB77;
+  --c4: #4D96FF;
+  --c5: #C77DFF;
+  --c6: #FF9A3C;
+  --c7: #00F5D4;
+  --dark: #0D0D1A;
+  --dark2: #13132B;
+  --dark3: #1A1A35;
+  --card: #1E1E40;
+  --text: #F0F0FF;
+  --muted: #8888BB;
+  --border: rgba(255,255,255,0.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Nunito',sans-serif;
+  background:var(--dark);
+  color:var(--text);
+  overflow-x:hidden;
+  cursor:none;
+}
+
+/* ── Custom cursor ── */
+#cursor{
+  position:fixed;width:18px;height:18px;
+  background:var(--c2);border-radius:50%;
+  pointer-events:none;z-index:9999;
+  transition:transform .15s,background .2s;
+  mix-blend-mode:difference;
+}
+#cursor-ring{
+  position:fixed;width:40px;height:40px;
+  border:2px solid var(--c4);border-radius:50%;
+  pointer-events:none;z-index:9998;
+  transition:transform .3s cubic-bezier(.17,.67,.35,1.2),opacity .2s;
+  opacity:.5;
+}
+
+/* ── Animated background particles ── */
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:.35;}
+
+/* ── Nav ── */
+nav{
+  position:fixed;top:0;left:0;width:100%;z-index:100;
+  padding:1rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(13,13,26,.85);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;
+  background:linear-gradient(135deg,var(--c4),var(--c5),var(--c7));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.nav-links{display:flex;gap:1.5rem;list-style:none;}
+.nav-links a{
+  color:var(--muted);text-decoration:none;font-weight:600;font-size:.9rem;
+  transition:color .2s;letter-spacing:.03em;
+}
+.nav-links a:hover{color:var(--c7);}
+
+/* ── Hero ── */
+#hero{
+  position:relative;z-index:1;
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  padding:6rem 2rem 4rem;
+  overflow:hidden;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:.5rem;
+  background:rgba(77,150,255,.15);border:1px solid rgba(77,150,255,.3);
+  color:var(--c4);padding:.4rem 1rem;border-radius:999px;
+  font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  margin-bottom:1.5rem;animation:fadeUp .6s ease both;
+}
+.hero-title{
+  font-family:'Syne',sans-serif;font-size:clamp(2.8rem,7vw,5.5rem);
+  font-weight:800;line-height:1.05;
+  animation:fadeUp .7s .1s ease both;
+  margin-bottom:1rem;
+}
+.hero-title .line1{display:block;color:var(--text);}
+.hero-title .line2{
+  display:block;
+  background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5));
+  background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:gradientShift 4s linear infinite;
+}
+.hero-sub{
+  font-size:1.15rem;color:var(--muted);max-width:600px;
+  margin:0 auto 2.5rem;line-height:1.7;
+  animation:fadeUp .7s .2s ease both;
+}
+.hero-btns{
+  display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;
+  animation:fadeUp .7s .3s ease both;
+}
+.btn{
+  padding:.85rem 2rem;border-radius:12px;font-weight:700;font-size:1rem;
+  cursor:none;border:none;text-decoration:none;transition:transform .2s,box-shadow .2s;
+  display:inline-flex;align-items:center;gap:.5rem;
+}
+.btn:hover{transform:translateY(-3px);}
+.btn-primary{
+  background:linear-gradient(135deg,var(--c4),var(--c5));
+  color:#fff;box-shadow:0 8px 30px rgba(77,150,255,.4);
+}
+.btn-primary:hover{box-shadow:0 12px 40px rgba(77,150,255,.6);}
+.btn-secondary{
+  background:transparent;color:var(--text);
+  border:2px solid rgba(255,255,255,.2);
+}
+.btn-secondary:hover{border-color:var(--c7);color:var(--c7);}
+
+/* Floating nodes animation */
+.float-nodes{position:absolute;width:100%;height:100%;top:0;left:0;pointer-events:none;}
+.fnode{
+  position:absolute;border-radius:50%;
+  animation:floatNode 6s ease-in-out infinite;
+  opacity:.6;
+}
+
+/* ── Section common ── */
+section{position:relative;z-index:1;padding:5rem 2rem;}
+.section-label{
+  font-family:'Space Mono',monospace;
+  font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--c7);margin-bottom:.75rem;
+}
+.section-title{
+  font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);
+  font-weight:800;margin-bottom:1rem;
+}
+.section-sub{color:var(--muted);font-size:1.05rem;line-height:1.7;max-width:600px;}
+.container{max-width:1200px;margin:0 auto;}
+
+/* ── Concept cards (ch2) ── */
+#concepts{background:var(--dark2);}
+.concepts-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:1.5rem;margin-top:3rem;
+}
+.concept-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:2rem;
+  transition:transform .3s,box-shadow .3s;
+  position:relative;overflow:hidden;cursor:none;
+}
+.concept-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--accent);
+}
+.concept-card:hover{transform:translateY(-6px);box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.concept-icon{
+  font-size:2.5rem;margin-bottom:1rem;
+  display:inline-block;animation:bounce 2s ease-in-out infinite;
+}
+.concept-card h3{font-family:'Syne',sans-serif;font-size:1.1rem;margin-bottom:.5rem;}
+.concept-card p{color:var(--muted);font-size:.9rem;line-height:1.6;}
+.tag{
+  display:inline-block;margin-top:1rem;
+  padding:.25rem .75rem;border-radius:999px;font-size:.75rem;font-weight:700;
+  background:rgba(255,255,255,.07);color:var(--accent);
+}
+
+/* ── Socket lifecycle interactive ── */
+#lifecycle{background:var(--dark3);}
+.lifecycle-wrapper{
+  display:flex;gap:2rem;margin-top:3rem;flex-wrap:wrap;
+}
+.lifecycle-steps{
+  flex:1;min-width:280px;
+  display:flex;flex-direction:column;gap:.75rem;
+}
+.step-btn{
+  background:var(--card);border:2px solid transparent;
+  border-radius:14px;padding:1rem 1.5rem;
+  cursor:none;text-align:left;color:var(--text);
+  transition:all .25s;display:flex;align-items:center;gap:1rem;
+  font-family:'Nunito',sans-serif;font-size:.95rem;font-weight:700;
+}
+.step-btn:hover,.step-btn.active{
+  border-color:var(--step-color);
+  background:rgba(255,255,255,.05);
+  transform:translateX(6px);
+}
+.step-btn.active{background:rgba(255,255,255,.08);}
+.step-num{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--step-color);color:#000;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:.85rem;flex-shrink:0;
+}
+.lifecycle-display{
+  flex:1.5;min-width:300px;
+  background:var(--card);border-radius:20px;border:1px solid var(--border);
+  padding:2rem;transition:all .3s;
+}
+.life-title{
+  font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:.5rem;
+}
+.life-desc{color:var(--muted);line-height:1.7;margin-bottom:1.5rem;font-size:.95rem;}
+.life-code{
+  background:#0A0A1A;border-radius:12px;padding:1.25rem;
+  font-family:'Space Mono',monospace;font-size:.82rem;
+  color:#A9B1D6;line-height:1.8;border:1px solid rgba(255,255,255,.06);
+  white-space:pre;overflow-x:auto;
+}
+.life-code .kw{color:#7AA2F7;}
+.life-code .fn{color:#7DCFFF;}
+.life-code .str{color:#9ECE6A;}
+.life-code .cm{color:#565F89;font-style:italic;}
+.life-code .num{color:#FF9E64;}
+.progress-bar{
+  height:4px;background:rgba(255,255,255,.1);border-radius:2px;
+  margin-top:1.5rem;overflow:hidden;
+}
+.progress-fill{
+  height:100%;border-radius:2px;transition:width .4s ease;
+  background:linear-gradient(90deg,var(--c4),var(--c5));
+}
+
+/* ── Quiz ── */
+#quiz{background:var(--dark2);}
+.quiz-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:24px;padding:2.5rem;max-width:750px;margin:3rem auto 0;
+}
+.quiz-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:2rem;
+}
+.quiz-counter{
+  font-family:'Space Mono',monospace;font-size:.85rem;color:var(--muted);
+}
+.quiz-score-badge{
+  background:rgba(107,203,119,.15);color:var(--c3);
+  padding:.3rem .9rem;border-radius:999px;font-weight:700;font-size:.85rem;
+}
+.quiz-question{
+  font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;
+  margin-bottom:1.5rem;line-height:1.4;
+}
+.quiz-options{display:flex;flex-direction:column;gap:.75rem;}
+.quiz-opt{
+  background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);
+  border-radius:12px;padding:1rem 1.25rem;
+  cursor:none;text-align:left;color:var(--text);
+  font-family:'Nunito',sans-serif;font-size:.95rem;font-weight:600;
+  transition:all .2s;display:flex;align-items:center;gap:1rem;
+}
+.quiz-opt:hover{border-color:var(--c4);background:rgba(77,150,255,.08);}
+.quiz-opt.correct{border-color:var(--c3)!important;background:rgba(107,203,119,.15)!important;}
+.quiz-opt.wrong{border-color:var(--c1)!important;background:rgba(255,107,107,.12)!important;}
+.opt-letter{
+  width:28px;height:28px;border-radius:8px;
+  background:rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Mono',monospace;font-size:.75rem;font-weight:700;
+  flex-shrink:0;transition:background .2s;
+}
+.quiz-opt.correct .opt-letter{background:var(--c3);color:#000;}
+.quiz-opt.wrong .opt-letter{background:var(--c1);color:#fff;}
+.quiz-feedback{
+  margin-top:1.25rem;padding:1rem 1.25rem;
+  border-radius:12px;font-size:.9rem;line-height:1.6;
+  display:none;
+}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.correct{background:rgba(107,203,119,.1);color:var(--c3);border:1px solid rgba(107,203,119,.3);}
+.quiz-feedback.wrong{background:rgba(255,107,107,.1);color:var(--c1);border:1px solid rgba(255,107,107,.3);}
+.quiz-next{
+  margin-top:1.5rem;width:100%;
+  background:linear-gradient(135deg,var(--c4),var(--c5));
+  color:#fff;padding:1rem;border-radius:12px;
+  border:none;font-weight:700;font-size:1rem;
+  cursor:none;display:none;transition:opacity .2s,transform .2s;
+}
+.quiz-next.show{display:block;}
+.quiz-next:hover{transform:translateY(-2px);}
+
+/* ── Code playground ── */
+#playground{background:var(--dark3);}
+.playground-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:3rem;
+}
+@media(max-width:700px){.playground-grid{grid-template-columns:1fr;}}
+.editor-pane{
+  background:#0A0A1A;border-radius:20px;border:1px solid var(--border);
+  overflow:hidden;
+}
+.editor-header{
+  padding:.75rem 1.25rem;background:rgba(255,255,255,.04);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.editor-dots{display:flex;gap:.4rem;}
+.dot{width:12px;height:12px;border-radius:50%;}
+.dot:nth-child(1){background:#FF5F57;}
+.dot:nth-child(2){background:#FFBD2E;}
+.dot:nth-child(3){background:#28C840;}
+.editor-label{
+  font-family:'Space Mono',monospace;font-size:.75rem;color:var(--muted);
+}
+.code-display{
+  padding:1.5rem;font-family:'Space Mono',monospace;font-size:.78rem;
+  color:#A9B1D6;line-height:1.9;white-space:pre;overflow-x:auto;
+  height:340px;overflow-y:auto;
+}
+.code-display::-webkit-scrollbar{width:4px;}
+.code-display::-webkit-scrollbar-track{background:transparent;}
+.code-display::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.run-btn{
+  margin:0 1.5rem 1.5rem;width:calc(100% - 3rem);
+  background:linear-gradient(135deg,var(--c3),var(--c7));
+  color:#000;border:none;padding:.85rem;border-radius:12px;
+  font-weight:900;font-size:.9rem;cursor:none;
+  transition:transform .2s,box-shadow .2s;
+  font-family:'Nunito',sans-serif;
+}
+.run-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(107,203,119,.3);}
+.output-pane{
+  background:#050510;border-radius:20px;border:1px solid var(--border);
+  overflow:hidden;
+}
+.output-body{
+  padding:1.5rem;font-family:'Space Mono',monospace;font-size:.8rem;
+  line-height:1.8;height:calc(100% - 44px);overflow-y:auto;
+}
+.out-line{opacity:0;animation:typeIn .3s ease forwards;}
+.out-prompt{color:var(--c3);}
+.out-info{color:var(--c4);}
+.out-success{color:var(--c7);}
+.out-warn{color:var(--c2);}
+.out-data{color:var(--c5);}
+
+/* ── Diagram ── */
+#diagram{background:var(--dark2);}
+.dia-container{
+  margin-top:3rem;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:24px;padding:2rem;overflow-x:auto;
+}
+.dia-row{
+  display:flex;align-items:center;justify-content:center;
+  gap:1rem;margin:.5rem 0;flex-wrap:nowrap;
+  min-width:600px;
+}
+.dia-box{
+  padding:.6rem 1.2rem;border-radius:10px;
+  font-family:'Space Mono',monospace;font-size:.78rem;font-weight:700;
+  text-align:center;min-width:120px;position:relative;cursor:none;
+  transition:transform .2s,box-shadow .2s;
+}
+.dia-box:hover{transform:scale(1.05);}
+.dia-box.server{background:rgba(77,150,255,.2);border:1.5px solid var(--c4);color:var(--c4);}
+.dia-box.client{background:rgba(199,125,255,.2);border:1.5px solid var(--c5);color:var(--c5);}
+.dia-box.network{background:rgba(0,245,212,.15);border:1.5px solid var(--c7);color:var(--c7);}
+.dia-arrow{color:var(--muted);font-size:1.2rem;flex-shrink:0;}
+.dia-label{
+  font-size:.7rem;color:var(--muted);text-align:center;margin:.15rem 0;
+  font-family:'Space Mono',monospace;
+}
+.dia-section-label{
+  font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:.3rem .8rem;border-radius:6px;
+}
+.dia-section-label.s{background:rgba(77,150,255,.15);color:var(--c4);}
+.dia-section-label.c{background:rgba(199,125,255,.15);color:var(--c5);}
+.tooltip-hint{
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:var(--dark);border:1px solid var(--border);
+  padding:.5rem .75rem;border-radius:8px;font-size:.72rem;
+  white-space:nowrap;color:var(--text);
+  opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;
+}
+.dia-box:hover .tooltip-hint{opacity:1;}
+
+/* ── Progress tracker ── */
+#tracker{background:var(--dark3);}
+.track-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-top:3rem;}
+.track-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:1.5rem;cursor:none;
+  transition:transform .2s;position:relative;overflow:hidden;
+}
+.track-card:hover{transform:translateY(-4px);}
+.track-card.done{border-color:rgba(107,203,119,.3);}
+.track-check{
+  width:32px;height:32px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:1rem;font-size:.9rem;
+  transition:all .3s;cursor:none;
+}
+.track-card.done .track-check{
+  background:var(--c3);border-color:var(--c3);color:#000;font-weight:900;
+}
+.track-card h4{font-size:.9rem;font-weight:700;margin-bottom:.4rem;}
+.track-card p{font-size:.8rem;color:var(--muted);line-height:1.5;}
+.xp-bar{height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:1rem;}
+.xp-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--c3),var(--c7));width:0;transition:width 1s ease;}
+
+/* ── Cheat sheet ── */
+#cheatsheet{background:var(--dark2);}
+.cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-top:3rem;}
+.cs-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;
+}
+.cs-header{
+  padding:.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;
+}
+.cs-fn{font-family:'Space Mono',monospace;font-size:.9rem;font-weight:700;}
+.cs-badge{
+  font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:.2rem .6rem;border-radius:999px;
+}
+.cs-body{
+  padding:1rem 1.25rem;
+  font-family:'Space Mono',monospace;font-size:.75rem;
+  color:#8899BB;line-height:1.7;border-top:1px solid var(--border);
+}
+.cs-desc{padding:.75rem 1.25rem;font-size:.82rem;color:var(--muted);line-height:1.5;}
+
+/* ── Footer ── */
+footer{
+  position:relative;z-index:1;
+  background:var(--dark);border-top:1px solid var(--border);
+  padding:3rem 2rem;text-align:center;
+}
+.footer-logo{
+  font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;
+  background:linear-gradient(135deg,var(--c4),var(--c5));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:.5rem;
+}
+footer p{color:var(--muted);font-size:.9rem;}
+
+/* ── Animations ── */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes gradientShift{
+  0%{background-position:0% 50%;}100%{background-position:200% 50%;}
+}
+@keyframes bounce{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-6px);}
+}
+@keyframes floatNode{
+  0%,100%{transform:translateY(0) scale(1);}
+  50%{transform:translateY(-20px) scale(1.05);}
+}
+@keyframes typeIn{
+  from{opacity:0;transform:translateX(-8px);}
+  to{opacity:1;transform:translateX(0);}
+}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(77,150,255,.4);}
+  50%{box-shadow:0 0 0 12px rgba(77,150,255,0);}
+}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">⚡ SocketVerse</div>
+  <ul class="nav-links">
+    <li><a href="#concepts">Concepts</a></li>
+    <li><a href="#lifecycle">Lifecycle</a></li>
+    <li><a href="#playground">Code Lab</a></li>
+    <li><a href="#quiz">Quiz</a></li>
+    <li><a href="#cheatsheet">Cheat Sheet</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="float-nodes">
+    <div class="fnode" style="width:80px;height:80px;background:rgba(77,150,255,.12);top:15%;left:8%;animation-delay:0s;animation-duration:7s;"></div>
+    <div class="fnode" style="width:50px;height:50px;background:rgba(199,125,255,.15);top:60%;left:5%;animation-delay:1s;animation-duration:5s;"></div>
+    <div class="fnode" style="width:100px;height:100px;background:rgba(0,245,212,.08);top:20%;right:10%;animation-delay:2s;animation-duration:8s;"></div>
+    <div class="fnode" style="width:60px;height:60px;background:rgba(255,107,107,.12);bottom:20%;right:8%;animation-delay:.5s;animation-duration:6s;"></div>
+    <div class="fnode" style="width:40px;height:40px;background:rgba(255,217,61,.15);bottom:30%;left:15%;animation-delay:1.5s;animation-duration:5.5s;"></div>
+  </div>
+  <div class="hero-badge">🌐 Interactive Learning Platform</div>
+  <h1 class="hero-title">
+    <span class="line1">Master WLAN</span>
+    <span class="line2">Socket Programming</span>
+  </h1>
+  <p class="hero-sub">
+    Learn network programming with C from scratch. Interactive lessons, live code labs, quizzes — all in one place!
+  </p>
+  <div class="hero-btns">
+    <a href="#lifecycle" class="btn btn-primary">🚀 Start Learning</a>
+    <a href="#quiz" class="btn btn-secondary">🎯 Take Quiz</a>
+  </div>
+</section>
+
+<!-- CONCEPTS -->
+<section id="concepts">
+<div class="container">
+  <p class="section-label reveal">Core Concepts</p>
+  <h2 class="section-title reveal">What You'll Learn</h2>
+  <p class="section-sub reveal">From the basics of TCP/IP to building real WLAN applications — everything covered step by step.</p>
+
+  <div class="concepts-grid">
+    <div class="concept-card reveal" style="--accent:var(--c4);">
+      <span class="concept-icon" style="animation-delay:.0s">📡</span>
+      <h3>What is a Socket?</h3>
+      <p>A socket is an endpoint in a network communication — like a power outlet for data. Every connected program needs one to send or receive.</p>
+      <span class="tag" style="--accent:var(--c4)">Foundation</span>
+    </div>
+    <div class="concept-card reveal" style="--accent:var(--c2);">
+      <span class="concept-icon" style="animation-delay:.2s">🔗</span>
+      <h3>TCP vs UDP</h3>
+      <p>TCP guarantees delivery and order — like certified mail. UDP is fast but unreliable — like shouting across a room. Use TCP for chat, UDP for gaming.</p>
+      <span class="tag" style="--accent:var(--c2)">Transport Layer</span>
+    </div>
+    <div class="concept-card reveal" style="--accent:var(--c3);">
+      <span class="concept-icon" style="animation-delay:.4s">🏠</span>
+      <h3>IP Addresses on WLAN</h3>
+      <p>Devices on the same Wi-Fi share a network (e.g. 192.168.1.x). The client uses the server's LAN IP — not localhost — to connect over Wi-Fi.</p>
+      <span class="tag" style="--accent:var(--c3)">Networking</span>
+    </div>
+    <div class="concept-card reveal" style="--accent:var(--c5);">
+      <span class="concept-icon" style="animation-delay:.6s">🤝</span>
+      <h3>TCP 3-Way Handshake</h3>
+      <p>Before data flows, TCP establishes trust: SYN → SYN-ACK → ACK. This happens automatically when you call connect() in C.</p>
+      <span class="tag" style="--accent:var(--c5)">Protocol</span>
+    </div>
+    <div class="concept-card reveal" style="--accent:var(--c1);">
+      <span class="concept-icon" style="animation-delay:.8s">🔢</span>
+      <h3>Byte Order (Endianness)</h3>
+      <p>Networks use big-endian format. Always convert ports with htons() and IPs with inet_pton() — or your packets won't be understood.</p>
+      <span class="tag" style="--accent:var(--c1)">Low Level</span>
+    </div>
+    <div class="concept-card reveal" style="--accent:var(--c7);">
+      <span class="concept-icon" style="animation-delay:1s">⚡</span>
+      <h3>send() &amp; recv() Loop</h3>
+      <p>Data exchange happens in a loop — send messages, receive replies. Neither call guarantees all bytes in one shot; always check the return value!</p>
+      <span class="tag" style="--accent:var(--c7)">Core API</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- LIFECYCLE -->
+<section id="lifecycle">
+<div class="container">
+  <p class="section-label reveal">Interactive Demo</p>
+  <h2 class="section-title reveal">Socket Lifecycle — Step by Step</h2>
+  <p class="section-sub reveal">Click each step to see the code and explanation. Follow the journey of a socket from creation to teardown.</p>
+
+  <div class="lifecycle-wrapper reveal">
+    <div class="lifecycle-steps" id="steps-container"></div>
+    <div class="lifecycle-display" id="lifecycle-display">
+      <div class="life-title" id="life-title">Select a step →</div>
+      <div class="life-desc" id="life-desc">Click any step on the left to see the code and explanation.</div>
+      <div class="life-code" id="life-code"></div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- DIAGRAM -->
+<section id="diagram">
+<div class="container">
+  <p class="section-label reveal">Visual Guide</p>
+  <h2 class="section-title reveal">Client–Server Flow Over WLAN</h2>
+  <p class="section-sub reveal">Hover over each box to learn what that call does. Follow the arrows to trace a message's journey.</p>
+
+  <div class="dia-container reveal">
+    <div style="display:flex;justify-content:center;gap:3rem;margin-bottom:1.5rem;">
+      <span class="dia-section-label s">SERVER (192.168.1.10)</span>
+      <span class="dia-section-label c">CLIENT (192.168.1.55)</span>
+    </div>
+
+    <div class="dia-row">
+      <div class="dia-box server">socket()<div class="tooltip-hint">Creates a TCP socket file descriptor<br>Returns: int fd</div></div>
+      <div class="dia-arrow" style="flex:1;text-align:center;color:transparent">·</div>
+      <div class="dia-box client">socket()<div class="tooltip-hint">Creates a TCP socket file descriptor<br>Returns: int fd</div></div>
+    </div>
+    <div class="dia-row"><div class="dia-label" style="width:100%;text-align:left;padding-left:4rem">↓ bind() — attach to port 8080</div></div>
+    <div class="dia-row">
+      <div class="dia-box server">bind()<div class="tooltip-hint">Binds to INADDR_ANY:8080<br>All interfaces, incl. Wi-Fi</div></div>
+      <div class="dia-arrow" style="flex:1"></div>
+      <div style="flex:1"></div>
+    </div>
+    <div class="dia-row"><div class="dia-label" style="width:100%;text-align:left;padding-left:4rem">↓ listen() — wait for connections</div></div>
+    <div class="dia-row">
+      <div class="dia-box server">listen()<div class="tooltip-hint">Marks socket as passive<br>Backlog queue: 3</div></div>
+      <div class="dia-arrow" style="flex:1"></div>
+      <div style="flex:1"></div>
+    </div>
+    <div class="dia-row">
+      <div style="flex:1"></div>
+      <div class="dia-arrow">←——</div>
+      <div class="dia-box network" style="flex-shrink:0;">Wi-Fi Router<div class="tooltip-hint">TCP 3-way handshake<br>SYN → SYN-ACK → ACK</div></div>
+      <div class="dia-arrow">——→</div>
+      <div class="dia-box client">connect()<div class="tooltip-hint">Initiates TCP handshake<br>to server WLAN IP:8080</div></div>
+    </div>
+    <div class="dia-row">
+      <div class="dia-box server">accept()<div class="tooltip-hint">Blocks until client connects<br>Returns new client_fd</div></div>
+      <div class="dia-arrow">←</div>
+      <div class="dia-box network">TCP ACK<div class="tooltip-hint">Handshake complete!<br>Connection established</div></div>
+      <div class="dia-arrow" style="visibility:hidden">→</div>
+      <div style="flex:1"></div>
+    </div>
+    <div style="text-align:center;margin:.75rem 0;font-family:'Space Mono',monospace;font-size:.75rem;color:var(--c3)">✓ CONNECTION ESTABLISHED — Data can now flow both ways</div>
+    <div class="dia-row">
+      <div class="dia-box server">recv()<div class="tooltip-hint">Reads data from client<br>Blocks until data arrives</div></div>
+      <div class="dia-arrow">←——</div>
+      <div class="dia-box network">📦 data<div class="tooltip-hint">TCP segments carrying<br>your message payload</div></div>
+      <div class="dia-arrow">——←</div>
+      <div class="dia-box client">send()<div class="tooltip-hint">Sends message to server<br>Returns bytes sent</div></div>
+    </div>
+    <div class="dia-row">
+      <div class="dia-box server">send()<div class="tooltip-hint">Echoes reply back<br>to client</div></div>
+      <div class="dia-arrow">——→</div>
+      <div class="dia-box network">📦 reply<div class="tooltip-hint">Server's response<br>traveling back</div></div>
+      <div class="dia-arrow">——→</div>
+      <div class="dia-box client">recv()<div class="tooltip-hint">Receives server's reply<br>Displays to user</div></div>
+    </div>
+    <div class="dia-row">
+      <div class="dia-box server">close()<div class="tooltip-hint">Sends FIN, releases fd<br>Frees all resources</div></div>
+      <div class="dia-arrow" style="flex:1;text-align:center;color:rgba(255,255,255,.2)">FIN/FIN-ACK</div>
+      <div class="dia-box client">close()<div class="tooltip-hint">Acknowledges FIN<br>Connection teardown</div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- CODE PLAYGROUND -->
+<section id="playground">
+<div class="container">
+  <p class="section-label reveal">Code Lab</p>
+  <h2 class="section-title reveal">Live Code Explorer</h2>
+  <p class="section-sub reveal">Explore the server and client code. Click "Simulate Run" to see what happens when you execute the program.</p>
+
+  <div style="display:flex;gap:.75rem;margin-top:2rem;flex-wrap:wrap;" class="reveal">
+    <button class="btn btn-primary" onclick="loadCode('server')" style="cursor:none">📡 Server Code</button>
+    <button class="btn btn-secondary" onclick="loadCode('client')" style="cursor:none">💻 Client Code</button>
+    <button class="btn btn-secondary" onclick="loadCode('multiclient')" style="cursor:none">👥 Multi-Client (select)</button>
+  </div>
+
+  <div class="playground-grid reveal">
+    <div class="editor-pane">
+      <div class="editor-header">
+        <div class="editor-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <span class="editor-label" id="file-label">server.c</span>
+      </div>
+      <div class="code-display" id="code-display"></div>
+      <button class="run-btn" onclick="runCode()">▶ Simulate Run</button>
+    </div>
+    <div class="output-pane">
+      <div class="editor-header">
+        <div class="editor-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <span class="editor-label">Terminal Output</span>
+      </div>
+      <div class="output-body" id="output-body">
+        <div style="color:var(--muted);font-family:'Space Mono',monospace;font-size:.8rem;">
+          Click "Simulate Run" to see output...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- QUIZ -->
+<section id="quiz">
+<div class="container">
+  <p class="section-label reveal">Test Yourself</p>
+  <h2 class="section-title reveal">Knowledge Quiz</h2>
+  <p class="section-sub reveal">10 questions covering everything from socket basics to WLAN specifics. Can you get a perfect score?</p>
+
+  <div class="quiz-card reveal">
+    <div class="quiz-header">
+      <span class="quiz-counter" id="q-counter">Question 1 of 10</span>
+      <span class="quiz-score-badge" id="q-score">Score: 0</span>
+    </div>
+    <div class="quiz-question" id="q-text"></div>
+    <div class="quiz-options" id="q-options"></div>
+    <div class="quiz-feedback" id="q-feedback"></div>
+    <button class="quiz-next" id="q-next" onclick="nextQuestion()">Next Question →</button>
+  </div>
+</div>
+</section>
+
+<!-- PROGRESS TRACKER -->
+<section id="tracker">
+<div class="container">
+  <p class="section-label reveal">Your Journey</p>
+  <h2 class="section-title reveal">Learning Tracker</h2>
+  <p class="section-sub reveal">Mark topics as you master them. Track your progress through the curriculum.</p>
+  <div class="track-grid" id="track-grid"></div>
+</div>
+</section>
+
+<!-- CHEAT SHEET -->
+<section id="cheatsheet">
+<div class="container">
+  <p class="section-label reveal">Quick Reference</p>
+  <h2 class="section-title reveal">Socket API Cheat Sheet</h2>
+  <p class="section-sub reveal">All the essential function signatures and what they do — bookmark this page!</p>
+  <div class="cs-grid" id="cs-grid"></div>
+</div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">⚡ SocketVerse</div>
+  <p>Built for students learning WLAN socket programming in C</p>
+  <p style="margin-top:.5rem;font-size:.8rem;">Happy coding! 🎉</p>
+</footer>
+
+<script>
+// ── Cursor ──────────────────────────────────────────────────────
+const cur = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  cur.style.left=(mx-9)+'px';cur.style.top=(my-9)+'px';
+});
+function animRing(){
+  rx+=(mx-rx-20)*.12;ry+=(my-ry-20)*.12;
+  ring.style.left=rx+'px';ring.style.top=ry+'px';
+  requestAnimationFrame(animRing);
+}animAnimRing=animRing;animRing();
+
+// ── BG Canvas particles ─────────────────────────────────────────
+const canvas=document.getElementById('bg-canvas');
+const ctx=canvas.getContext('2d');
+let particles=[];
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resizeCanvas();window.addEventListener('resize',resizeCanvas);
+
+const colors=['#4D96FF','#C77DFF','#00F5D4','#FF6B6B','#FFD93D','#6BCB77'];
+for(let i=0;i<60;i++){
+  particles.push({
+    x:Math.random()*window.innerWidth,
+    y:Math.random()*window.innerHeight,
+    r:Math.random()*2+1,
+    dx:(Math.random()-.5)*.4,
+    dy:(Math.random()-.5)*.4,
+    c:colors[Math.floor(Math.random()*colors.length)],
+    a:Math.random()*.6+.2
+  });
+}
+function drawParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.c;ctx.globalAlpha=p.a;ctx.fill();
+    p.x+=p.dx;p.y+=p.dy;
+    if(p.x<0||p.x>canvas.width)p.dx*=-1;
+    if(p.y<0||p.y>canvas.height)p.dy*=-1;
+  });
+  // draw connections
+  ctx.globalAlpha=1;
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const d=Math.hypot(particles[i].x-particles[j].x,particles[i].y-particles[j].y);
+      if(d<120){
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle=particles[i].c;
+        ctx.globalAlpha=(1-d/120)*.15;
+        ctx.lineWidth=.5;ctx.stroke();
+      }
+    }
+  }
+  ctx.globalAlpha=1;
+  requestAnimationFrame(drawParticles);
+}drawParticles();
+
+// ── Scroll reveal ───────────────────────────────────────────────
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// ── Lifecycle steps ─────────────────────────────────────────────
+const steps=[
+  {label:'socket()',color:'#4D96FF',side:'Both',
+   title:'Step 1 — Create the Socket',
+   desc:'The very first call. socket() asks the OS to create a new communication endpoint and returns a file descriptor (an integer) that represents it. Think of it like plugging in a phone before you can dial.',
+   code:`<span class="kw">int</span> server_fd;
+
+<span class="cm">/* AF_INET = IPv4, SOCK_STREAM = TCP */</span>
+server_fd = <span class="fn">socket</span>(<span class="num">AF_INET</span>, <span class="num">SOCK_STREAM</span>, <span class="num">0</span>);
+
+<span class="kw">if</span> (server_fd == <span class="num">-1</span>) {
+    <span class="fn">perror</span>(<span class="str">"socket() failed"</span>);
+    <span class="fn">exit</span>(<span class="num">EXIT_FAILURE</span>);
+}
+<span class="cm">/* server_fd is now a valid file descriptor */</span>`},
+  {label:'bind()',color:'#FFD93D',side:'Server',
+   title:'Step 2 — Bind to an Address',
+   desc:'bind() ties the socket to a specific IP address and port number on this machine. Using INADDR_ANY (0.0.0.0) means "listen on ALL interfaces" — including the Wi-Fi adapter — so WLAN clients can reach us.',
+   code:`<span class="kw">struct</span> sockaddr_in address;
+address.sin_family      = AF_INET;
+address.sin_addr.s_addr = <span class="num">INADDR_ANY</span>; <span class="cm">/* all interfaces */</span>
+address.sin_port        = <span class="fn">htons</span>(<span class="num">8080</span>);  <span class="cm">/* network byte order */</span>
+
+<span class="kw">if</span> (<span class="fn">bind</span>(server_fd,
+         (<span class="kw">struct</span> sockaddr *)&address,
+         <span class="kw">sizeof</span>(address)) < <span class="num">0</span>) {
+    <span class="fn">perror</span>(<span class="str">"bind() failed"</span>);
+    <span class="fn">exit</span>(<span class="num">EXIT_FAILURE</span>);
+}`},
+  {label:'listen()',color:'#6BCB77',side:'Server',
+   title:'Step 3 — Start Listening',
+   desc:'listen() marks the socket as passive — it will now accept incoming connections. The backlog parameter (3) sets how many pending connections can queue up before the OS starts refusing new ones.',
+   code:`<span class="cm">/* Backlog = 3: up to 3 pending connections */</span>
+<span class="kw">if</span> (<span class="fn">listen</span>(server_fd, <span class="num">3</span>) < <span class="num">0</span>) {
+    <span class="fn">perror</span>(<span class="str">"listen() failed"</span>);
+    <span class="fn">exit</span>(<span class="num">EXIT_FAILURE</span>);
+}
+
+<span class="fn">printf</span>(<span class="str">"Server listening on port 8080...\\n"</span>);`},
+  {label:'connect()',color:'#C77DFF',side:'Client',
+   title:'Step 4 — Client Connects (TCP Handshake)',
+   desc:'On the CLIENT side, connect() initiates the TCP 3-way handshake to the server\'s WLAN IP. This call blocks until the connection is established or fails. The server\'s IP must be its LAN address (e.g. 192.168.1.10).',
+   code:`<span class="kw">struct</span> sockaddr_in server_addr;
+server_addr.sin_family = AF_INET;
+server_addr.sin_port   = <span class="fn">htons</span>(<span class="num">8080</span>);
+
+<span class="cm">/* Use WLAN IP, NOT 127.0.0.1! */</span>
+<span class="fn">inet_pton</span>(AF_INET, <span class="str">"192.168.1.10"</span>,
+          &server_addr.sin_addr);
+
+<span class="kw">if</span> (<span class="fn">connect</span>(sock_fd,
+             (<span class="kw">struct</span> sockaddr *)&server_addr,
+             <span class="kw">sizeof</span>(server_addr)) < <span class="num">0</span>) {
+    <span class="fn">perror</span>(<span class="str">"connect() failed"</span>);
+}`},
+  {label:'accept()',color:'#FF6B6B',side:'Server',
+   title:'Step 5 — Server Accepts Connection',
+   desc:'accept() blocks on the server side until a client connects. When it returns, you get a NEW socket fd (client_fd) dedicated to that single client. The original server_fd keeps listening for more clients.',
+   code:`<span class="kw">int</span> client_fd;
+<span class="kw">int</span> addrlen = <span class="kw">sizeof</span>(address);
+
+<span class="cm">/* Blocks until a client connects */</span>
+client_fd = <span class="fn">accept</span>(server_fd,
+                    (<span class="kw">struct</span> sockaddr *)&address,
+                    (<span class="kw">socklen_t</span> *)&addrlen);
+
+<span class="kw">char</span> ip[INET_ADDRSTRLEN];
+<span class="fn">inet_ntop</span>(AF_INET, &address.sin_addr,
+          ip, INET_ADDRSTRLEN);
+<span class="fn">printf</span>(<span class="str">"Client from: %s\\n"</span>, ip);`},
+  {label:'send()/recv()',color:'#00F5D4',side:'Both',
+   title:'Step 6 — Exchange Data',
+   desc:'Now data flows! send() puts bytes into the TCP send buffer; the OS handles the actual delivery. recv() reads from the receive buffer. Always loop on both — they may not send/receive everything in one call.',
+   code:`<span class="kw">char</span> buffer[<span class="num">1024</span>];
+
+<span class="cm">/* Server: echo loop */</span>
+<span class="kw">while</span> (<span class="num">1</span>) {
+    <span class="fn">memset</span>(buffer, <span class="num">0</span>, <span class="kw">sizeof</span>(buffer));
+    <span class="kw">int</span> n = <span class="fn">recv</span>(client_fd, buffer,
+                    <span class="kw">sizeof</span>(buffer), <span class="num">0</span>);
+    <span class="kw">if</span> (n <= <span class="num">0</span>) <span class="kw">break</span>; <span class="cm">/* disconnected */</span>
+
+    <span class="fn">printf</span>(<span class="str">"Got: %s"</span>, buffer);
+    <span class="fn">send</span>(client_fd, buffer, n, <span class="num">0</span>); <span class="cm">/* echo */</span>
+}`},
+  {label:'close()',color:'#FF9A3C',side:'Both',
+   title:'Step 7 — Close the Connection',
+   desc:'close() sends a FIN packet, initiating graceful TCP teardown. Always close BOTH the client_fd and the server_fd when done. Forgetting to close sockets causes resource leaks in long-running servers.',
+   code:`<span class="cm">/* Server: close both fds */</span>
+<span class="fn">close</span>(client_fd);  <span class="cm">/* close this client */</span>
+<span class="fn">close</span>(server_fd);  <span class="cm">/* stop listening */</span>
+
+<span class="cm">/* Client: close its socket */</span>
+<span class="fn">close</span>(sock_fd);
+
+<span class="cm">/* TCP sends FIN → FIN-ACK → ACK */</span>
+<span class="cm">/* Connection is fully torn down */</span>`},
+];
+
+function renderSteps(){
+  const c=document.getElementById('steps-container');
+  steps.forEach((s,i)=>{
+    const btn=document.createElement('button');
+    btn.className='step-btn';
+    btn.style.setProperty('--step-color',s.color);
+    btn.innerHTML=`<div class="step-num" style="background:${s.color}">${i+1}</div>
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:.85rem">${s.label}</div>
+        <div style="font-size:.75rem;color:var(--muted);font-weight:400">${s.side}</div>
+      </div>`;
+    btn.onclick=()=>showStep(i);
+    c.appendChild(btn);
+  });
+}
+
+function showStep(i){
+  document.querySelectorAll('.step-btn').forEach((b,j)=>{
+    b.classList.toggle('active',j===i);
+  });
+  const s=steps[i];
+  document.getElementById('life-title').textContent=s.title;
+  document.getElementById('life-desc').textContent=s.desc;
+  document.getElementById('life-code').innerHTML=s.code;
+  document.getElementById('progress-fill').style.width=((i+1)/steps.length*100)+'%';
+}
+
+renderSteps();
+
+// ── Code playground ─────────────────────────────────────────────
+const codes={
+  server:{
+    file:'server.c',
+    code:`<span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;unistd.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;arpa/inet.h&gt;</span>
+
+<span class="kw">#define</span> PORT        <span class="num">8080</span>
+<span class="kw">#define</span> BUFFER_SIZE <span class="num">1024</span>
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    <span class="kw">int</span> server_fd, client_fd;
+    <span class="kw">struct</span> sockaddr_in address;
+    <span class="kw">char</span> buffer[BUFFER_SIZE];
+    <span class="kw">int</span> addrlen = <span class="kw">sizeof</span>(address);
+
+    <span class="cm">/* 1. Create socket */</span>
+    server_fd = <span class="fn">socket</span>(AF_INET, SOCK_STREAM, <span class="num">0</span>);
+
+    <span class="cm">/* 2. Allow port reuse */</span>
+    <span class="kw">int</span> opt = <span class="num">1</span>;
+    <span class="fn">setsockopt</span>(server_fd, SOL_SOCKET,
+               SO_REUSEADDR, &opt, <span class="kw">sizeof</span>(opt));
+
+    <span class="cm">/* 3. Bind to all interfaces (WLAN incl.) */</span>
+    address.sin_family      = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port        = <span class="fn">htons</span>(PORT);
+    <span class="fn">bind</span>(server_fd, (<span class="kw">struct</span> sockaddr *)&address,
+         <span class="kw">sizeof</span>(address));
+
+    <span class="cm">/* 4. Listen */</span>
+    <span class="fn">listen</span>(server_fd, <span class="num">3</span>);
+    <span class="fn">printf</span>(<span class="str">"Server listening on port %d...\\n"</span>, PORT);
+
+    <span class="cm">/* 5. Accept a client */</span>
+    client_fd = <span class="fn">accept</span>(server_fd,
+                  (<span class="kw">struct</span> sockaddr *)&address,
+                  (<span class="kw">socklen_t</span> *)&addrlen);
+
+    <span class="cm">/* 6. Echo loop */</span>
+    <span class="kw">while</span> (<span class="num">1</span>) {
+        <span class="fn">memset</span>(buffer, <span class="num">0</span>, BUFFER_SIZE);
+        <span class="kw">int</span> n = <span class="fn">read</span>(client_fd, buffer, BUFFER_SIZE);
+        <span class="kw">if</span> (n <= <span class="num">0</span>) <span class="kw">break</span>;
+        <span class="fn">printf</span>(<span class="str">"Client: %s"</span>, buffer);
+        <span class="fn">send</span>(client_fd, buffer, n, <span class="num">0</span>);
+    }
+    <span class="fn">close</span>(client_fd); <span class="fn">close</span>(server_fd);
+    <span class="kw">return</span> <span class="num">0</span>;
+}`,
+    output:[
+      {t:'prompt',txt:'$ gcc server.c -o server && ./server'},
+      {t:'info',txt:'[*] socket() created fd=3'},
+      {t:'info',txt:'[*] setsockopt SO_REUSEADDR enabled'},
+      {t:'info',txt:'[*] bind() → 0.0.0.0:8080 (WLAN reachable)'},
+      {t:'info',txt:'[*] listen() backlog=3'},
+      {t:'success',txt:'Server listening on port 8080...'},
+      {t:'warn',txt:'[*] Waiting for client connection...'},
+      {t:'success',txt:'Client connected from: 192.168.1.55'},
+      {t:'data',txt:'Client: Hello WLAN Server!'},
+      {t:'info',txt:'[*] Echoed 18 bytes back to client'},
+      {t:'data',txt:'Client: How fast is this?'},
+      {t:'info',txt:'[*] Echoed 17 bytes back to client'},
+      {t:'warn',txt:'[*] Client disconnected (recv returned 0)'},
+      {t:'info',txt:'[*] close(client_fd) close(server_fd)'},
+    ]
+  },
+  client:{
+    file:'client.c',
+    code:`<span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;unistd.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;arpa/inet.h&gt;</span>
+
+<span class="kw">#define</span> PORT      <span class="num">8080</span>
+<span class="kw">#define</span> BUF_SIZE  <span class="num">1024</span>
+<span class="kw">#define</span> SERVER_IP <span class="str">"192.168.1.10"</span>  <span class="cm">/* WLAN IP */</span>
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    <span class="kw">int</span> sock_fd;
+    <span class="kw">struct</span> sockaddr_in server_addr;
+    <span class="kw">char</span> buf[BUF_SIZE], msg[BUF_SIZE];
+
+    <span class="cm">/* 1. Create socket */</span>
+    sock_fd = <span class="fn">socket</span>(AF_INET, SOCK_STREAM, <span class="num">0</span>);
+
+    <span class="cm">/* 2. Set up server address */</span>
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port   = <span class="fn">htons</span>(PORT);
+    <span class="fn">inet_pton</span>(AF_INET, SERVER_IP,
+              &server_addr.sin_addr);
+
+    <span class="cm">/* 3. TCP 3-way handshake */</span>
+    <span class="fn">connect</span>(sock_fd,
+            (<span class="kw">struct</span> sockaddr *)&server_addr,
+            <span class="kw">sizeof</span>(server_addr));
+
+    <span class="fn">printf</span>(<span class="str">"Connected to %s:%d\\n\\n"</span>,
+           SERVER_IP, PORT);
+
+    <span class="cm">/* 4. Chat loop */</span>
+    <span class="kw">while</span> (<span class="num">1</span>) {
+        <span class="fn">printf</span>(<span class="str">"You: "</span>);
+        <span class="fn">fgets</span>(msg, BUF_SIZE, stdin);
+        <span class="kw">if</span> (<span class="fn">strncmp</span>(msg, <span class="str">"exit"</span>, <span class="num">4</span>) == <span class="num">0</span>) <span class="kw">break</span>;
+        <span class="fn">send</span>(sock_fd, msg, <span class="fn">strlen</span>(msg), <span class="num">0</span>);
+        <span class="fn">memset</span>(buf, <span class="num">0</span>, BUF_SIZE);
+        <span class="fn">recv</span>(sock_fd, buf, BUF_SIZE, <span class="num">0</span>);
+        <span class="fn">printf</span>(<span class="str">"%s\\n"</span>, buf);
+    }
+    <span class="fn">close</span>(sock_fd);
+    <span class="kw">return</span> <span class="num">0</span>;
+}`,
+    output:[
+      {t:'prompt',txt:'$ gcc client.c -o client && ./client'},
+      {t:'info',txt:'[*] socket() created fd=3'},
+      {t:'info',txt:'[*] inet_pton("192.168.1.10") OK'},
+      {t:'info',txt:'[*] SYN → 192.168.1.10:8080'},
+      {t:'info',txt:'[*] ← SYN-ACK received'},
+      {t:'info',txt:'[*] ACK → Connection established!'},
+      {t:'success',txt:'Connected to 192.168.1.10:8080'},
+      {t:'prompt',txt:'You: Hello WLAN Server!'},
+      {t:'data',txt:'[Server echo]: Hello WLAN Server!'},
+      {t:'prompt',txt:'You: How fast is this?'},
+      {t:'data',txt:'[Server echo]: How fast is this?'},
+      {t:'prompt',txt:'You: exit'},
+      {t:'info',txt:'[*] close(sock_fd) — TCP FIN sent'},
+    ]
+  },
+  multiclient:{
+    file:'server_multiclient.c',
+    code:`<span class="kw">#include</span> <span class="str">&lt;sys/select.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;arpa/inet.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;unistd.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
+
+<span class="kw">#define</span> PORT <span class="num">8080</span>
+<span class="kw">#define</span> BUF  <span class="num">1024</span>
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    fd_set readfds;
+    <span class="kw">int</span> clients[FD_SETSIZE], max_fd;
+    <span class="kw">char</span> buf[BUF];
+
+    <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>; i<FD_SETSIZE; i++) clients[i]=-<span class="num">1</span>;
+
+    <span class="kw">int</span> srv = <span class="fn">socket</span>(AF_INET, SOCK_STREAM, <span class="num">0</span>);
+    <span class="kw">struct</span> sockaddr_in addr = {
+        .sin_family=AF_INET,
+        .sin_addr.s_addr=INADDR_ANY,
+        .sin_port=<span class="fn">htons</span>(PORT)
+    };
+    <span class="fn">bind</span>(srv,(<span class="kw">struct</span> sockaddr*)&addr,<span class="kw">sizeof</span>(addr));
+    <span class="fn">listen</span>(srv, <span class="num">10</span>);
+    max_fd = srv;
+
+    <span class="kw">while</span>(<span class="num">1</span>) {
+        FD_ZERO(&readfds);
+        FD_SET(srv, &readfds);
+        <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>;i<FD_SETSIZE;i++)
+            <span class="kw">if</span>(clients[i]><span class="num">0</span>) FD_SET(clients[i],&readfds);
+
+        <span class="fn">select</span>(max_fd+<span class="num">1</span>, &readfds, NULL, NULL, NULL);
+
+        <span class="cm">/* New connection? */</span>
+        <span class="kw">if</span>(FD_ISSET(srv, &readfds)) {
+            <span class="kw">int</span> nfd = <span class="fn">accept</span>(srv,NULL,NULL);
+            <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>;i<FD_SETSIZE;i++)
+                <span class="kw">if</span>(clients[i]<<span class="num">0</span>) { clients[i]=nfd; <span class="kw">break</span>; }
+            <span class="kw">if</span>(nfd>max_fd) max_fd=nfd;
+        }
+        <span class="cm">/* Existing client data? */</span>
+        <span class="kw">for</span>(<span class="kw">int</span> i=<span class="num">0</span>;i<FD_SETSIZE;i++) {
+            <span class="kw">if</span>(clients[i]><span class="num">0</span> &&
+               FD_ISSET(clients[i],&readfds)) {
+                <span class="kw">int</span> n=<span class="fn">read</span>(clients[i],buf,BUF);
+                <span class="kw">if</span>(n<=<span class="num">0</span>) {
+                    <span class="fn">close</span>(clients[i]);
+                    clients[i]=-<span class="num">1</span>;
+                } <span class="kw">else</span> {
+                    <span class="fn">send</span>(clients[i],buf,n,<span class="num">0</span>);
+                }
+            }
+        }
+    }
+}`,
+    output:[
+      {t:'prompt',txt:'$ gcc server_multiclient.c -o server && ./server'},
+      {t:'success',txt:'Multi-client server listening on port 8080'},
+      {t:'info',txt:'[*] select() watching fd: 3 (server)'},
+      {t:'success',txt:'[+] Client 1 connected → fd=4 (192.168.1.55)'},
+      {t:'info',txt:'[*] select() watching fd: 3,4'},
+      {t:'success',txt:'[+] Client 2 connected → fd=5 (192.168.1.72)'},
+      {t:'info',txt:'[*] select() watching fd: 3,4,5'},
+      {t:'data',txt:'[fd=4] "Hello from Client 1" → echoed'},
+      {t:'data',txt:'[fd=5] "Hi from Client 2!"  → echoed'},
+      {t:'data',txt:'[fd=4] "Both of us chatting!" → echoed'},
+      {t:'warn',txt:'[-] Client 1 (fd=4) disconnected'},
+      {t:'info',txt:'[*] select() watching fd: 3,5'},
+    ]
+  }
+};
+
+let currentCode='server';
+function loadCode(name){
+  currentCode=name;
+  const c=codes[name];
+  document.getElementById('file-label').textContent=c.file;
+  document.getElementById('code-display').innerHTML=c.code;
+  document.getElementById('output-body').innerHTML='<div style="color:var(--muted);font-family:\'Space Mono\',monospace;font-size:.8rem;">Click "Simulate Run" to see output...</div>';
+}
+loadCode('server');
+
+function runCode(){
+  const lines=codes[currentCode].output;
+  const body=document.getElementById('output-body');
+  body.innerHTML='';
+  lines.forEach((l,i)=>{
+    setTimeout(()=>{
+      const div=document.createElement('div');
+      div.className='out-line';
+      div.style.animationDelay='0s';
+      const cls={prompt:'out-prompt',info:'out-info',success:'out-success',warn:'out-warn',data:'out-data'}[l.t]||'';
+      div.innerHTML=`<span class="${cls}">${l.t==='prompt'?'$ ':''}${l.txt}</span>`;
+      body.appendChild(div);
+      body.scrollTop=body.scrollHeight;
+    },i*200);
+  });
+}
+
+// ── Quiz ────────────────────────────────────────────────────────
+const questions=[
+  {q:"What system call creates a socket file descriptor?",opts:["bind()","socket()","listen()","connect()"],ans:1,exp:"socket() creates the communication endpoint and returns a file descriptor. It's always the first call in both server and client code."},
+  {q:"Which constant should a server use for sin_addr to accept WLAN connections?",opts:["LOCALHOST","127.0.0.1","INADDR_ANY","AF_INET"],ans:2,exp:"INADDR_ANY (0.0.0.0) binds to ALL network interfaces, including the Wi-Fi adapter, making the server reachable from other devices on the same WLAN."},
+  {q:"What does htons() do?",opts:["Converts a host string to network string","Converts a host short to network byte order","Creates a host socket","Hashes network traffic"],ans:1,exp:"htons() = 'host to network short'. It converts a 16-bit integer (port number) from the host's byte order to big-endian (network byte order). Essential before putting a port in sockaddr_in."},
+  {q:"Which system call on the CLIENT initiates the TCP 3-way handshake?",opts:["bind()","accept()","connect()","listen()"],ans:2,exp:"connect() sends the initial SYN packet to the server, triggering the TCP 3-way handshake (SYN → SYN-ACK → ACK). It blocks until the connection is fully established."},
+  {q:"What does accept() return?",opts:["The port number","A new socket fd for the connected client","The client's IP address","The number of pending connections"],ans:1,exp:"accept() returns a NEW file descriptor dedicated to communicating with that specific client. The original server_fd continues listening for more connections."},
+  {q:"If recv() returns 0, what does it mean?",opts:["No data available yet","The client cleanly disconnected","An error occurred","The buffer is full"],ans:1,exp:"recv() returning 0 means the remote peer closed the connection gracefully (sent a FIN). You should break out of the loop and close the socket on your side."},
+  {q:"What is the purpose of SO_REUSEADDR socket option?",opts:["Allows the socket to send to multiple addresses","Allows the port to be reused immediately after server exit","Increases buffer size","Enables broadcast mode"],ans:1,exp:"SO_REUSEADDR lets you restart your server immediately after it exits without waiting for the OS TIME_WAIT state to expire. Without it you get 'Address already in use' errors."},
+  {q:"Which function converts a dotted IP string (e.g. '192.168.1.10') to binary?",opts:["atoi()","inet_addr()","inet_pton()","gethostbyname()"],ans:2,exp:"inet_pton() = 'presentation to network'. It converts an IP address string to its binary network representation, storing it in sin_addr. It supports both IPv4 (AF_INET) and IPv6 (AF_INET6)."},
+  {q:"What does select() allow a server to do?",opts:["Select the fastest network interface","Monitor multiple file descriptors for readability","Choose between TCP and UDP","Select a specific WLAN channel"],ans:1,exp:"select() lets a single-threaded server monitor multiple socket file descriptors simultaneously. When data arrives on any of them, select() returns and you can handle it — no threads needed!"},
+  {q:"A client wants to connect to a server on the SAME Wi-Fi network. What IP should it use?",opts:["127.0.0.1 (localhost)","255.255.255.255 (broadcast)","The server's WLAN IP (e.g. 192.168.1.10)","0.0.0.0"],ans:2,exp:"localhost (127.0.0.1) only works within the same machine. To communicate across Wi-Fi, the client must use the server's actual LAN IP address assigned by the router (e.g. 192.168.1.10). Find it with 'ip a' on Linux."},
+];
+
+let qIndex=0,score=0,answered=false;
+
+function renderQuestion(){
+  const q=questions[qIndex];
+  document.getElementById('q-counter').textContent=`Question ${qIndex+1} of ${questions.length}`;
+  document.getElementById('q-score').textContent=`Score: ${score}`;
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('q-feedback').className='quiz-feedback';
+  document.getElementById('q-feedback').textContent='';
+  document.getElementById('q-next').className='quiz-next';
+  answered=false;
+  const opts=document.getElementById('q-options');
+  opts.innerHTML='';
+  ['A','B','C','D'].forEach((letter,i)=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-opt';
+    btn.innerHTML=`<span class="opt-letter">${letter}</span>${q.opts[i]}`;
+    btn.onclick=()=>answer(i,btn);
+    opts.appendChild(btn);
+  });
+}
+
+function answer(i,btn){
+  if(answered)return;
+  answered=true;
+  const q=questions[qIndex];
+  const fb=document.getElementById('q-feedback');
+  const opts=document.querySelectorAll('.quiz-opt');
+  opts[q.ans].classList.add('correct');
+  if(i===q.ans){
+    score++;
+    fb.textContent='✅ Correct! '+q.exp;
+    fb.className='quiz-feedback correct show';
+  }else{
+    btn.classList.add('wrong');
+    fb.textContent='❌ Not quite. '+q.exp;
+    fb.className='quiz-feedback wrong show';
+  }
+  document.getElementById('q-score').textContent=`Score: ${score}`;
+  document.getElementById('q-next').className='quiz-next show';
+}
+
+function nextQuestion(){
+  qIndex++;
+  if(qIndex>=questions.length){
+    const pct=Math.round(score/questions.length*100);
+    const emoji=pct===100?'🏆':pct>=80?'🎉':pct>=60?'👍':'📚';
+    document.getElementById('q-text').textContent=`${emoji} Quiz Complete! You scored ${score}/${questions.length} (${pct}%)`;
+    document.getElementById('q-options').innerHTML='';
+    document.getElementById('q-feedback').className='quiz-feedback';
+    document.getElementById('q-next').innerHTML='🔄 Restart Quiz';
+    document.getElementById('q-next').className='quiz-next show';
+    document.getElementById('q-next').onclick=()=>{qIndex=0;score=0;renderQuestion();document.getElementById('q-next').onclick=nextQuestion;};
+    return;
+  }
+  renderQuestion();
+}
+renderQuestion();
+
+// ── Progress Tracker ────────────────────────────────────────────
+const topics=[
+  {title:"Socket Basics",desc:"Created your first socket()",xp:100},
+  {title:"TCP vs UDP",desc:"Understand when to use each",xp:100},
+  {title:"bind() & listen()",desc:"Set up a server socket",xp:150},
+  {title:"connect() & accept()",desc:"Establish TCP connections",xp:150},
+  {title:"send() & recv()",desc:"Exchange data over sockets",xp:200},
+  {title:"WLAN IP Setup",desc:"Find server IP, connect over Wi-Fi",xp:200},
+  {title:"Error Handling",desc:"Handle ECONNREFUSED, EPIPE...",xp:250},
+  {title:"Multi-client (select)",desc:"Handle multiple clients at once",xp:300},
+  {title:"Byte Ordering",desc:"htons(), htonl(), inet_pton()",xp:150},
+  {title:"Full Project",desc:"Built a working chat app!",xp:500},
+];
+const done=new Set(JSON.parse(localStorage.getItem('socket_done')||'[]'));
+
+function renderTracker(){
+  const g=document.getElementById('track-grid');
+  g.innerHTML='';
+  topics.forEach((t,i)=>{
+    const card=document.createElement('div');
+    card.className='track-card'+(done.has(i)?' done':'');
+    card.innerHTML=`<div class="track-check" onclick="toggleDone(${i},this)">${done.has(i)?'✓':''}</div>
+      <h4>${t.title}</h4><p>${t.desc}</p>
+      <div class="xp-bar"><div class="xp-fill" style="width:${done.has(i)?100:0}%"></div></div>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:.4rem;font-family:'Space Mono',monospace">+${t.xp} XP</div>`;
+    g.appendChild(card);
+    obs.observe(card);
+  });
+}
+
+function toggleDone(i,el){
+  if(done.has(i)){done.delete(i);}else{done.add(i);}
+  localStorage.setItem('socket_done',JSON.stringify([...done]));
+  renderTracker();
+}
+renderTracker();
+
+// ── Cheat Sheet ─────────────────────────────────────────────────
+const fns=[
+  {fn:'socket()',color:['#4D96FF','rgba(77,150,255,.15)'],badge:'CREATE',badgeBg:'rgba(77,150,255,.2)',sig:'int socket(int domain,\n           int type,\n           int protocol);',desc:'Creates a socket. Returns fd on success, -1 on error. Use AF_INET + SOCK_STREAM for TCP.'},
+  {fn:'bind()',color:['#FFD93D','rgba(255,217,61,.15)'],badge:'SERVER',badgeBg:'rgba(255,217,61,.15)',sig:'int bind(int sockfd,\n         const struct sockaddr *addr,\n         socklen_t addrlen);',desc:'Assigns an address to a socket. Set sin_addr=INADDR_ANY for WLAN reachability.'},
+  {fn:'listen()',color:['#6BCB77','rgba(107,203,119,.15)'],badge:'SERVER',badgeBg:'rgba(107,203,119,.15)',sig:'int listen(int sockfd,\n           int backlog);',desc:'Marks socket as passive. backlog = max pending connections before refusing new ones.'},
+  {fn:'accept()',color:['#FF6B6B','rgba(255,107,107,.15)'],badge:'SERVER',badgeBg:'rgba(255,107,107,.15)',sig:'int accept(int sockfd,\n           struct sockaddr *addr,\n           socklen_t *addrlen);',desc:'Blocks until a client connects. Returns a NEW fd for that client. Original fd keeps listening.'},
+  {fn:'connect()',color:['#C77DFF','rgba(199,125,255,.15)'],badge:'CLIENT',badgeBg:'rgba(199,125,255,.15)',sig:'int connect(int sockfd,\n            const struct sockaddr *addr,\n            socklen_t addrlen);',desc:'Initiates TCP handshake to server. Blocks until connection established. Use WLAN IP, not localhost!'},
+  {fn:'send()',color:['#00F5D4','rgba(0,245,212,.15)'],badge:'BOTH',badgeBg:'rgba(0,245,212,.15)',sig:'ssize_t send(int sockfd,\n             const void *buf,\n             size_t len,\n             int flags);',desc:'Transmit data. Returns bytes actually sent — may be less than len! Loop until all bytes sent.'},
+  {fn:'recv()',color:['#FF9A3C','rgba(255,154,60,.15)'],badge:'BOTH',badgeBg:'rgba(255,154,60,.15)',sig:'ssize_t recv(int sockfd,\n             void *buf,\n             size_t len,\n             int flags);',desc:'Receive data. Returns 0 if peer disconnected, -1 on error. Always zero the buffer first.'},
+  {fn:'close()',color:['#8888BB','rgba(136,136,187,.15)'],badge:'BOTH',badgeBg:'rgba(136,136,187,.15)',sig:'int close(int fd);',desc:'Closes the socket and sends TCP FIN. Always close both server_fd and client_fd to avoid leaks.'},
+  {fn:'htons()',color:['#FFD93D','rgba(255,217,61,.12)'],badge:'UTIL',badgeBg:'rgba(255,217,61,.12)',sig:'uint16_t htons(uint16_t hostshort);',desc:'Host-to-network short. Convert port numbers to network byte order (big-endian) before using in sockaddr_in.'},
+  {fn:'inet_pton()',color:['#4D96FF','rgba(77,150,255,.12)'],badge:'UTIL',badgeBg:'rgba(77,150,255,.12)',sig:'int inet_pton(int af,\n              const char *src,\n              void *dst);',desc:'Presentation-to-network. Converts "192.168.1.10" string to binary IP. Use AF_INET for IPv4.'},
+  {fn:'setsockopt()',color:['#C77DFF','rgba(199,125,255,.12)'],badge:'UTIL',badgeBg:'rgba(199,125,255,.12)',sig:'int setsockopt(int sockfd, int level,\n               int optname,\n               const void *optval,\n               socklen_t optlen);',desc:'Set socket options. Most important: SO_REUSEADDR prevents "address already in use" on restart.'},
+  {fn:'select()',color:['#6BCB77','rgba(107,203,119,.12)'],badge:'MULTI',badgeBg:'rgba(107,203,119,.12)',sig:'int select(int nfds,\n           fd_set *readfds,\n           fd_set *writefds,\n           fd_set *exceptfds,\n           struct timeval *timeout);',desc:'I/O multiplexing — monitor multiple fds at once. Returns when any fd is readable. Foundation of multi-client servers.'},
+];
+
+const csg=document.getElementById('cs-grid');
+fns.forEach(f=>{
+  const c=document.createElement('div');
+  c.className='cs-card reveal';
+  c.style.borderTopColor=f.color[0];
+  c.style.borderTop=`3px solid ${f.color[0]}`;
+  c.innerHTML=`<div class="cs-header" style="background:${f.color[1]}">
+    <span class="cs-fn" style="color:${f.color[0]}">${f.fn}</span>
+    <span class="cs-badge" style="background:${f.badgeBg};color:${f.color[0]}">${f.badge}</span>
+  </div>
+  <div class="cs-body">${f.sig}</div>
+  <div class="cs-desc">${f.desc}</div>`;
+  csg.appendChild(c);
+  obs.observe(c);
+});
+</script>
+</body>
+</html>
